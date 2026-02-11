@@ -1,18 +1,19 @@
 cmake_minimum_required(VERSION 3.12)
 project(lidar_imu_init)
 
-SET(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE Release)
 
-ADD_COMPILE_OPTIONS(-std=c++14 )
-set( CMAKE_CXX_FLAGS "-std=c++14 -O3" ) 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_compile_options(-O3 -fexceptions -pthread)
 
 add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions" )
-set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -std=c++0x -std=c++14 -fexceptions")
 
 message("Current CPU architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)" )
@@ -38,7 +39,6 @@ find_package(OpenMP QUIET)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
 
-find_package(PythonLibs REQUIRED)
 find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
 # find dependencies
@@ -62,20 +62,13 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 find_package(Python3 COMPONENTS Development)
-set(Python3_EXECUTABLE "/usr/bin/python3")
-find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
-if(OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
-
-include_directories(
-  include
-  ${EIGEN3_INCLUDE_DIR}
-  ${PCL_INCLUDE_DIRS}
-  ${PYTHON_INCLUDE_DIRS}
+execute_process(
+  COMMAND ${Python3_EXECUTABLE} -c "import numpy; print(numpy.get_include())"
+  OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+message(STATUS "Numpy include dir: ${NUMPY_INCLUDE_DIR}")
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Pose6D.msg"
@@ -95,6 +88,7 @@ target_include_directories(li_init PRIVATE
   ${EIGEN3_INCLUDE_DIR}
   ${PCL_INCLUDE_DIR}
   ${Python3_INCLUDE_DIRS}
+  ${NUMPY_INCLUDE_DIR}
   ${CERES_INCLUDE_DIRS}
   )
 
