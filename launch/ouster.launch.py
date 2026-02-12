@@ -6,7 +6,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     ld =LaunchDescription()
     node = Node(
-        package= "lidar_imu_init2",
+        package= "lidar_imu_init",
         name= "laser_mapping",
         executable="li_init",
         output = "screen",
@@ -15,7 +15,7 @@ def generate_launch_description():
             "max_iteration":5,
             "cube_side_length": 2000.0, 
         },
-        os.path.join(get_package_share_directory("lidar_imu_init2"),"config","ouster.yaml")
+        os.path.join(get_package_share_directory("lidar_imu_init"),"config","ouster.yaml")
         ]
     )
 
