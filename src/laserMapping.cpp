@@ -19,6 +19,7 @@
 #include "preprocess.h"
 #include <ikd-Tree/ikd_Tree.h>
 #include <LI_init/LI_init.h>
+#include <std_msgs/msg/bool.hpp>
 
 #ifndef DEPLOY
 #include "matplotlibcpp.h"
@@ -68,6 +69,9 @@ vector<double> Trans_LI_cov(3, 0.0005);
 vector<double> Rot_LI_cov(3, 0.00005);
 V3D mean_acc = Zero3d;
 ofstream fout_result;
+
+// InnovativePhysics edit
+static rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr g_init_done_pub;
 
 MatrixXd Jaco_rot(30000, 3);
 ofstream fout_out;
@@ -756,6 +760,14 @@ void fileout_calib_result()
     Transform.block<3, 1>(0, 3) = state.offset_T_L_I;
     fout_result << "Homogeneous Transformation Matrix from LiDAR to IMU: " << endl;
     fout_result << Transform << endl << endl << endl;
+
+    // Publish the new InnovativePhysics ROS topic to declare completion of initialisation
+    if (g_init_done_pub) {
+       std_msgs::msg::Bool done_msg;
+        done_msg.data = true;
+        g_init_done_pub->publish(done_msg);
+        RCLCPP_INFO(rclcpp::get_logger("li_init"), "Published /li_init/done = true");
+    }
 }
 
 void print_refine_result()
@@ -935,6 +947,10 @@ public:
         pubOdomAftMapped = this->create_publisher<nav_msgs::msg::Odometry>("/aft_mapped_to_init", 20);
         pubPath = this->create_publisher<nav_msgs::msg::Path>("/li_init/path", 20);
 
+        /*** Custom InnovativePhysics addition to this package so the node publishes a ROS topic once initialisation is complete ***/
+        auto qos = rclcpp::QoS(1).transient_local().reliable();
+        g_init_done_pub = this->create_publisher<std_msgs::msg::Bool>("/li_init/done", qos);
+
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
         auto period_ms = std::chrono::milliseconds(static_cast<int64_t>(1000.0 / 1000.0)); // 1ms
@@ -963,6 +979,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudMap;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr init_done_pub_;
 
     /*** variables definition ***/
     VD(DIM_STATE) solution;
