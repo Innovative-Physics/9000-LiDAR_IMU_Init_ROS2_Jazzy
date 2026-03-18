@@ -1,5 +1,10 @@
-# Additional Notes for ROS 2 Jazzy
-## Tested Environment
+# Fork Edits
+This fork does two things:
+
+1. Makes the package compatible with ROS2 Jazzy
+2. Changes the initialisation process to publish a `bool` topic once initialisation has completed and odometry is starting
+
+## Details of ROS2 Jazzy Compatibility Changes
 
 * Ubuntu 22.04
 
