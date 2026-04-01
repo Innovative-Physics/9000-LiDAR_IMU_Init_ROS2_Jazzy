@@ -1,22 +1,11 @@
 # Fork Edits
-This fork does two things:
+This fork does three things:
 
 1. Makes the package compatible with ROS2 Jazzy
-2. Changes the initialisation process to publish a `bool` topic once initialisation has completed and odometry is starting
+2. Makes the package compatible with Ubuntu 24.04 Noble
+3. Changes the initialisation process to publish a `bool` topic once initialisation has completed and odometry is starting
 
-## Details of ROS2 Jazzy Compatibility Changes
-
-* Ubuntu 22.04
-
-* ROS 2 Jazzy
-
-* GCC 13
-
-* Python 3.12
-
-* Ceres Solver 2.0.0 (built from source)
-
-## Build System Adjustments for Modern ROS 2
+## 1. Build System Adjustments for ROS2 Jazzy
 ### C++ Standard Update
 
 The original project enforced C++14.
@@ -24,7 +13,7 @@ ROS 2 Jazzy and modern `rclcpp` headers require C++17 features (e.g., `std::opti
 
 The build configuration was updated to use C++17 to ensure compatibility with modern ROS 2 distributions and toolchains.
 
-## Python / NumPy Header Integration
+### Python / NumPy Header Integration
 
 The project uses `matplotlibcpp`, which depends on NumPy C headers.
 
@@ -34,43 +23,26 @@ The build configuration was updated to correctly detect and include NumPy header
 
 This improves portability across Python 3.10–3.12+.
 
-## Modern Python CMake Usage
+### Modern Python CMake Usage
 
 Legacy Python discovery mechanisms were removed in favour of modern CMake `FindPython3` usage.
 
-This avoids hardcoded interpreter paths and improves compatibility with:
+This avoids hardcoded interpreter paths and improves compatibility with system Python, virtual environments, and future Ubuntu releases.
 
-System Python
+## 2. Ubuntu 24.04 Compatibility Changes
+The original repo used a library called Ceres Solver, and was written to use its 2.0.0 API. The Ceres solver you install in Ubuntu Noble has API changes which break the repo. In just a few locations the following replacements were made:
 
-Virtual environments
+``` c++
+// before
+ceres::LocalParameterization *quatParam =
+    new ceres::QuaternionParameterization();
 
-Future Ubuntu releases
+// after
+ceres::Manifold *quatParam =
+    new ceres::QuaternionManifold();
+```
 
-## Ceres Solver Version Requirement
+The package now works with the newest Ceres Solver.
 
-⚠️ **Important**: This project requires Ceres Solver 2.0.0.
-
-Ubuntu currently provides Ceres 2.2.x, which introduces API changes that remove `LocalParameterization`.
-The solver implementation in this project depends on the pre-2.1 API.
-
-To preserve solver behaviour without modifying algorithm internals, Ceres 2.0.0 must be built from source.
-
-## Ceres 2.0 on Modern Ubuntu
-
-When building Ceres 2.0 on recent Ubuntu versions, SuiteSparse detection may fail due to TBB layout changes.
-
-To avoid configuration errors, Ceres should be built with SuiteSparse and TBB disabled.
-
-# Summary of Changes
-
-The fork primarily:
-
-Modernises the CMake configuration
-
-Ensures ROS 2 Jazzy compatibility
-
-Fixes Python/NumPy header integration
-
-Documents the required Ceres version
-
-Algorithmic behaviour and solver logic remain unchanged.
+## 3. Initialisation process changes
+This package performs some LiDAR-IMU initialisation, and then runs its own LiDAR odometry package. I wanted to benefit from the initialisation, but have the freedom to perform odometry with whatever other package I wanted. For this reason, I added a Boolean topic that indicates when initialisation is complete. This allows a ROS system to respond to the completion of initialisation, shutting down this package and allowing another to take over for the odometry. 
